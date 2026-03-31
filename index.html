@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sentient | Emotion Galaxy</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <!-- Welcome Screen -->
+    <div id="welcome-screen">
+      <div class="welcome-content">
+        <h1>Welcome to Sentient</h1>
+        <p class="fade-in-text">Dom will show you around...</p>
+        
+        <div id="cat-container">
+          <div class="chat-bubble">hi!</div>
+          <div class="cat-name">Dom</div>
+          <img src="./pixel_cat.png" alt="Pixel Space Cat Dom" class="pixel-cat">
+        </div>
+
+        <button id="start-btn" class="btn active">Enter</button>
+      </div>
+    </div>
+
+    <!-- Three.js Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay -->
+    <main class="ui-layer">
+      <header>
+        <h1>Sentient</h1>
+      </header>
+
+      <section class="controls">
+        <label for="emotion-select">How are you feeling?</label>
+        <div class="emotion-buttons" id="emotion-buttons-container">
+          <button class="btn calm" data-emotion="calm">Calm</button>
+          <button class="btn happy" data-emotion="happy">Joyful</button>
+          <button class="btn energetic" data-emotion="energetic">Energetic</button>
+          <button class="btn sad" data-emotion="sad">Melancholic</button>
+          <button class="btn angry" data-emotion="angry">Fiery</button>
+          <button class="btn exhausted" data-emotion="exhausted">Exhausted</button>
+          <button class="btn unmotivated" data-emotion="unmotivated">Unmotivated</button>
+          <button class="btn nostalgic" data-emotion="nostalgic">Nostalgic</button>
+          <button class="btn add-custom" id="btn-add-custom">+</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Side Menu -->
+    <aside class="side-menu">
+      <button class="icon-btn" id="btn-notes" aria-label="Notes" title="Notes">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+      </button>
+      <button class="icon-btn" id="btn-settings" aria-label="Settings" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      </button>
+      <button class="icon-btn" id="btn-charts" aria-label="Charts" title="Charts">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+      </button>
+      <button class="icon-btn" id="btn-themes" aria-label="Themes" title="Themes">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
+      </button>
+    </aside>
+
+    <!-- Action Buttons -->
+    <div id="action-buttons" style="position: absolute; bottom: 32px; right: 32px; z-index: 20; display: flex; gap: 12px;">
+      <button id="btn-write" class="icon-btn" aria-label="Write Note" title="Write Note">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+      </button>
+      <button id="btn-fullscreen" class="icon-btn" aria-label="Fullscreen" title="Fullscreen">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+      </button>
+    </div>
+
+    <!-- Modals -->
+    <div id="charts-modal" class="modal hidden">
+      <div class="modal-content glass-panel">
+        <button class="close-modal" id="close-charts">&times;</button>
+        <h2>Emotional Journey</h2>
+        <div class="chart-controls">
+          <button id="toggle-chart-time" class="btn small-btn">Period: Last 7 Days</button>
+        </div>
+        <div class="chart-container" id="chart-container">
+          <!-- Bars injected here -->
+        </div>
+      </div>
+    </div>
+
+    <div id="add-emotion-modal" class="modal hidden">
+      <div class="modal-content glass-panel">
+        <button class="close-modal" id="close-add-emotion">&times;</button>
+        <h2>Add a New Emotion</h2>
+        <div class="form-group">
+          <label for="custom-emotion-name">Name your emotion:</label>
+          <input type="text" id="custom-emotion-name" placeholder="E.g., Wanderlust, Zen..." autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="custom-emotion-desc">Explain how it feels:</label>
+          <textarea id="custom-emotion-desc" placeholder="A deep sense of longing for adventure..."></textarea>
+        </div>
+        <div class="form-error" id="custom-emotion-error"></div>
+        <button class="btn submit-emotion" id="submit-custom-emotion">Create Light</button>
+      </div>
+    </div>
+
+    <div id="write-modal" class="modal hidden">
+      <div class="modal-content glass-panel">
+        <button class="close-modal" id="close-write">&times;</button>
+        <h2>Write a Note</h2>
+        <div class="form-group">
+          <input type="text" id="note-title" placeholder="Note Title (Optional)" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <textarea id="note-body" placeholder="Write your thoughts..."></textarea>
+        </div>
+        <button class="btn submit-emotion" id="submit-note" style="margin-top: 12px;">Release to Galaxy</button>
+      </div>
+    </div>
+
+    <div id="notes-modal" class="modal hidden">
+      <div class="modal-content glass-panel" style="max-width: 800px; height: 80vh;">
+        <button class="close-modal" id="close-notes">&times;</button>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="margin:0;">Notes Archive</h2>
+            <button id="btn-new-folder" class="btn small-btn" style="padding: 6px 12px;">+ Folder</button>
+        </div>
+        
+        <div id="notes-workspace" style="display: flex; gap: 20px; flex: 1; height: calc(100% - 60px); margin-top: 16px;">
+          <div id="folders-container" style="flex: 1; border-right: 1px solid var(--glass-border); padding-right: 16px; overflow-y: auto;">
+            <!-- Folders -->
+          </div>
+          <div id="notes-list-container" style="flex: 2; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 8px;">
+            <!-- Notes -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
