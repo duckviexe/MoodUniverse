@@ -433,7 +433,7 @@ if (submitNoteBtn) {
     const titleInput = document.getElementById('note-title');
     const bodyInput = document.getElementById('note-body');
     if (!bodyInput.value.trim()) return;
-    
+
     const newNote = {
       id: 'note_' + Date.now(),
       title: titleInput.value.trim() || 'unknown',
@@ -444,12 +444,12 @@ if (submitNoteBtn) {
     };
     notesData.unshift(newNote);
     saveNotes();
-    
+
     const noteColor = getEmotionColor(newNote.emotion);
     const modalContent = document.querySelector('#write-modal .modal-content');
     modalContent.style.setProperty('--star-color', noteColor);
     modalContent.classList.add('morph-to-star');
-    
+
     setTimeout(() => {
       document.getElementById('write-modal').classList.add('hidden');
       modalContent.classList.remove('morph-to-star');
@@ -459,6 +459,7 @@ if (submitNoteBtn) {
     }, 1900);
   });
 }
+//progress update
 
 const btnNotes = document.getElementById('btn-notes');
 if (btnNotes) {
