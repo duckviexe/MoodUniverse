@@ -319,10 +319,10 @@ btnSettings.addEventListener('click', () => {
   // Sync sliders with current parameters
   densitySlider.value = parameters.count;
   valDensity.textContent = parameters.count >= 1000 ? (parameters.count / 1000) + 'k' : parameters.count;
-  
+
   sizeSlider.value = parameters.size;
   valSize.textContent = parameters.size.toFixed(3);
-  
+
   speedSlider.value = speedMultiplier;
   valSpeed.textContent = speedMultiplier.toFixed(1) + 'x';
 
@@ -353,32 +353,32 @@ densitySlider.addEventListener('input', (e) => {
 densitySlider.addEventListener('change', (e) => {
   const newVal = parseInt(e.target.value);
   parameters.count = newVal;
-  
+
   if (points && !isFirstInteraction) {
     const prevPos = points.position.clone();
     const prevRot = points.rotation.clone();
-    
+
     // Regenerate current galaxy
     const currentEmotion = activeEmotion !== 'unknown' ? activeEmotion : 'calm';
     const settings = emotionMaps[currentEmotion];
-    
+
     // Cleanup old mesh data
     geometry.dispose();
     scene.remove(points);
-    
+
     // Create new mesh
     const result = createGalaxyMesh(settings.insideColor, settings.outsideColor);
     points = result.mesh;
     geometry = result.geom;
     material = result.mat;
-    
+
     // Restore spatial state
     points.position.copy(prevPos);
     points.rotation.copy(prevRot);
     material.size = parameters.size;
-    
+
     scene.add(points);
-    
+
     // Reset color transitions to ensure colors are updated in the loop
     parameters.currentColorInside.set(new THREE.Color(settings.insideColor));
     parameters.currentColorOutside.set(new THREE.Color(settings.outsideColor));
@@ -388,22 +388,22 @@ densitySlider.addEventListener('change', (e) => {
     bgGalaxies.forEach(g => {
       const prevPos = g.mesh.position.clone();
       const prevRot = g.mesh.rotation.clone();
-      
+
       // Cleanup
       g.geom.dispose();
       scene.remove(g.mesh);
-      
+
       const map = emotionMaps[g.key];
       const result = createGalaxyMesh(map.insideColor, map.outsideColor);
-      
+
       g.mesh = result.mesh;
       g.geom = result.geom;
       g.mat = result.mat;
-      
+
       g.mesh.position.copy(prevPos);
       g.mesh.rotation.copy(prevRot);
       g.mat.size = parameters.size;
-      
+
       scene.add(g.mesh);
     });
   }
@@ -439,7 +439,7 @@ document.getElementById('btn-clear-notes').addEventListener('click', () => {
   if (confirm('Permanent deletion of all stars (notes). Proceed?')) {
     notesData = [];
     saveNotes();
-    
+
     // Remove shooting stars from scene
     activeAnimations.forEach(anim => {
       scene.remove(anim.mesh);
@@ -447,7 +447,7 @@ document.getElementById('btn-clear-notes').addEventListener('click', () => {
       anim.mesh.material.dispose();
     });
     activeAnimations = [];
-    
+
     if (!document.getElementById('notes-modal').classList.contains('hidden')) renderNotes();
     alert('Notes archived to the void.');
   }
@@ -479,7 +479,7 @@ const renderChart = () => {
     const wrapper = document.createElement('div');
     wrapper.className = 'bar-wrapper';
 
-    // Bar
+    // Barm
     const bar = document.createElement('div');
     bar.className = 'bar';
     const heightPercent = Math.max((counts[emotion] / maxCount) * 100, 5);
@@ -565,15 +565,15 @@ const saveFolders = () => localStorage.setItem('sentientFolders', JSON.stringify
 const getEmotionColor = (key) => emotionMaps[key] ? emotionMaps[key].insideColor : '#ffffff';
 const spawnShootingStar = (color) => {
   const geom = new THREE.SphereGeometry(0.1, 8, 8);
-  const mat = new THREE.MeshBasicMaterial({ 
+  const mat = new THREE.MeshBasicMaterial({
     color: new THREE.Color(color),
     transparent: true,
     opacity: 1
   });
   const mesh = new THREE.Mesh(geom, mat);
-  
+
   // Start position: Foreground, slightly below center
-  mesh.position.set(0, 0, 8); 
+  mesh.position.set(0, 0, 8);
   scene.add(mesh);
 
   // Target: Random point in the galaxy's spiral
@@ -640,8 +640,8 @@ if (submitNoteBtn) {
         titleInput.value = '';
         bodyInput.value = '';
         if (!document.getElementById('notes-modal').classList.contains('hidden')) renderNotes();
-      }, 350); 
-      
+      }, 350);
+
       // Spawn 3D shooting star near the end of CSS animation
       spawnShootingStar(noteColor);
     }, 1800);
@@ -793,7 +793,7 @@ const tick = () => {
   }
   for (let i = activeAnimations.length - 1; i >= 0; i--) {
     const anim = activeAnimations[i];
-    
+
     if (anim.state === 'init') {
       anim.progress += 0.02;
       const ease = 1 - Math.pow(1 - anim.progress, 3);
@@ -842,14 +842,14 @@ const tick = () => {
     } else if (anim.state === 'flyToGalaxy') {
       anim.progress += anim.speed;
       const ease = Math.pow(anim.progress, 2); // Accelerate into galaxy
-      
+
       anim.mesh.position.x = anim.startX + (anim.targetX - anim.startX) * ease;
       anim.mesh.position.y = anim.startY + (anim.targetY - anim.startY) * ease;
       anim.mesh.position.z = anim.startZ + (anim.targetZ - anim.startZ) * ease;
-      
+
       const s = 0.3 + (anim.targetScale - 0.3) * ease;
       anim.mesh.scale.setScalar(s);
-      
+
       if (anim.progress >= 1) {
         // Now it becomes permanent part of galaxy flow
         anim.state = 'permanent';
