@@ -351,23 +351,61 @@ densitySlider.addEventListener('input', (e) => {
 });
 
 densitySlider.addEventListener('change', (e) => {
-  parameters.count = parseInt(e.target.value);
+  const newVal = parseInt(e.target.value);
+  parameters.count = newVal;
+  
   if (points && !isFirstInteraction) {
+    const prevPos = points.position.clone();
+    const prevRot = points.rotation.clone();
+    
     // Regenerate current galaxy
     const currentEmotion = activeEmotion !== 'unknown' ? activeEmotion : 'calm';
     const settings = emotionMaps[currentEmotion];
     
-    // Cleanup old
+    // Cleanup old mesh data
     geometry.dispose();
     scene.remove(points);
     
-    // Create new
+    // Create new mesh
     const result = createGalaxyMesh(settings.insideColor, settings.outsideColor);
     points = result.mesh;
     geometry = result.geom;
     material = result.mat;
     
+    // Restore spatial state
+    points.position.copy(prevPos);
+    points.rotation.copy(prevRot);
+    material.size = parameters.size;
+    
     scene.add(points);
+    
+    // Reset color transitions to ensure colors are updated in the loop
+    parameters.currentColorInside.set(new THREE.Color(settings.insideColor));
+    parameters.currentColorOutside.set(new THREE.Color(settings.outsideColor));
+    parameters.colorTransitionAlpha = 0.99;
+  } else if (isFirstInteraction) {
+    // Also update all background galaxies
+    bgGalaxies.forEach(g => {
+      const prevPos = g.mesh.position.clone();
+      const prevRot = g.mesh.rotation.clone();
+      
+      // Cleanup
+      g.geom.dispose();
+      scene.remove(g.mesh);
+      
+      const map = emotionMaps[g.key];
+      const result = createGalaxyMesh(map.insideColor, map.outsideColor);
+      
+      g.mesh = result.mesh;
+      g.geom = result.geom;
+      g.mat = result.mat;
+      
+      g.mesh.position.copy(prevPos);
+      g.mesh.rotation.copy(prevRot);
+      g.mat.size = parameters.size;
+      
+      scene.add(g.mesh);
+    });
   }
 });
 
@@ -550,7 +588,9 @@ const spawnShootingStar = (color) => {
     startX: 0, startY: 0, startZ: 8,
     targetX: targetX, targetY: targetY, targetZ: targetZ,
     progress: 0,
-    speed: 0.005, // slow and graceful
+    speed: 0.005, // base speed
+    state: 'init', // init, circleRight, pause, circleLeft, flyToGalaxy
+    stateCounter: 0,
     isPermanent: true,
     startScale: 0.01,
     targetScale: 0.2 + Math.random() * 0.3,
@@ -586,15 +626,21 @@ if (submitNoteBtn) {
 
     const noteColor = getEmotionColor(newNote.emotion);
     const modalContent = document.querySelector('#write-modal .modal-content');
+    const writeModal = document.getElementById('write-modal');
     modalContent.style.setProperty('--star-color', noteColor);
     modalContent.classList.add('morph-to-star');
+    writeModal.classList.add('morphing'); // reveal background
 
     setTimeout(() => {
-      document.getElementById('write-modal').classList.add('hidden');
-      modalContent.classList.remove('morph-to-star');
-      titleInput.value = '';
-      bodyInput.value = '';
-      if (!document.getElementById('notes-modal').classList.contains('hidden')) renderNotes();
+      writeModal.classList.add('hidden');
+      // Wait for modal fade out transition before cleaning up class and note, to avoid flash
+      setTimeout(() => {
+        modalContent.classList.remove('morph-to-star');
+        writeModal.classList.remove('morphing');
+        titleInput.value = '';
+        bodyInput.value = '';
+        if (!document.getElementById('notes-modal').classList.contains('hidden')) renderNotes();
+      }, 350); 
       
       // Spawn 3D shooting star near the end of CSS animation
       spawnShootingStar(noteColor);
@@ -748,18 +794,67 @@ const tick = () => {
   for (let i = activeAnimations.length - 1; i >= 0; i--) {
     const anim = activeAnimations[i];
     
-    if (anim.progress < 1) {
+    if (anim.state === 'init') {
+      anim.progress += 0.02;
+      const ease = 1 - Math.pow(1 - anim.progress, 3);
+      // Move to center-ish depth for circling
+      anim.mesh.position.set(
+        anim.startX + (0 - anim.startX) * ease,
+        anim.startY + (0 - anim.startY) * ease,
+        anim.startZ + (5 - anim.startZ) * ease
+      );
+      anim.mesh.scale.setScalar(anim.startScale + (0.3 - anim.startScale) * ease);
+      if (anim.progress >= 1) {
+        anim.state = 'circleRight';
+        anim.progress = 0;
+        anim.stateCounter = 0;
+      }
+    } else if (anim.state === 'circleRight') {
+      anim.stateCounter += 0.05;
+      const radius = 1.5;
+      anim.mesh.position.x = Math.sin(anim.stateCounter) * radius;
+      anim.mesh.position.y = Math.cos(anim.stateCounter) * radius - radius; // start from bottom of circle
+      anim.mesh.position.z = 5;
+      if (anim.stateCounter >= Math.PI * 2) {
+        anim.state = 'pause';
+        anim.stateCounter = 0;
+      }
+    } else if (anim.state === 'pause') {
+      anim.stateCounter += 1;
+      if (anim.stateCounter >= 60) { // about 1 sec at 60fps
+        anim.state = 'circleLeft';
+        anim.stateCounter = 0;
+      }
+    } else if (anim.state === 'circleLeft') {
+      anim.stateCounter += 0.05;
+      const radius = 1.5;
+      anim.mesh.position.x = -Math.sin(anim.stateCounter) * radius;
+      anim.mesh.position.y = Math.cos(anim.stateCounter) * radius - radius;
+      anim.mesh.position.z = 5;
+      if (anim.stateCounter >= Math.PI * 2) {
+        anim.state = 'flyToGalaxy';
+        anim.progress = 0;
+        // set current pos as new start for final leg
+        anim.startX = anim.mesh.position.x;
+        anim.startY = anim.mesh.position.y;
+        anim.startZ = anim.mesh.position.z;
+      }
+    } else if (anim.state === 'flyToGalaxy') {
       anim.progress += anim.speed;
-      const ease = 1 - Math.pow(1 - anim.progress, 3); // Cubic ease-out
+      const ease = Math.pow(anim.progress, 2); // Accelerate into galaxy
       
       anim.mesh.position.x = anim.startX + (anim.targetX - anim.startX) * ease;
       anim.mesh.position.y = anim.startY + (anim.targetY - anim.startY) * ease;
       anim.mesh.position.z = anim.startZ + (anim.targetZ - anim.startZ) * ease;
       
-      const s = anim.startScale + (anim.targetScale - anim.startScale) * ease;
+      const s = 0.3 + (anim.targetScale - 0.3) * ease;
       anim.mesh.scale.setScalar(s);
-    } else {
-      // Permanent star flow logic
+      
+      if (anim.progress >= 1) {
+        // Now it becomes permanent part of galaxy flow
+        anim.state = 'permanent';
+      }
+    } else if (anim.state === 'permanent') {
       if (anim.isPermanent) {
         anim.angle -= parameters.currentSpeed * speedMultiplier; // match galaxy speed
         anim.mesh.position.x = Math.cos(anim.angle) * anim.radius;
