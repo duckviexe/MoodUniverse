@@ -477,7 +477,7 @@ document.getElementById('btn-clear-notes').addEventListener('click', () => {
     notesData = [];
     saveNotes();
 
-    // Remove shooting stars from scene
+    // Remove shooting stars from scenee
     activeAnimations.forEach(anim => {
       scene.remove(anim.mesh);
       anim.mesh.geometry.dispose();
@@ -602,7 +602,7 @@ const saveFolders = () => localStorage.setItem('sentientFolders', JSON.stringify
 const getEmotionColor = (key) => emotionMaps[key] ? emotionMaps[key].insideColor : '#ffffff';
 const spawnShootingStar = (color, fastForward = false, noteData = null) => {
   const starGroup = new THREE.Group();
-  
+
   const coreGeom = new THREE.SphereGeometry(0.12, 12, 12);
   const coreMat = new THREE.MeshBasicMaterial({
     color: new THREE.Color(color),
@@ -618,14 +618,14 @@ const spawnShootingStar = (color, fastForward = false, noteData = null) => {
   const satellite = new THREE.Mesh(orbitGeom, orbitMat);
   satellite.position.x = 0.25;
   starGroup.add(satellite);
-  
+
   // Get coordinate system relative to camera
   const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
   const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
   const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
 
   const gPos = (points && !isFirstInteraction) ? points.position.clone() : new THREE.Vector3(0, 0, 0);
-  
+
   let targetAngle, targetRadius, targetHeight;
   if (noteData) {
     const p = getNotePos(noteData.id);
@@ -676,7 +676,7 @@ const spawnShootingStar = (color, fastForward = false, noteData = null) => {
       stateCounter: 0,
       isPermanent: true,
       startScale: 0.01,
-      targetScale: 0.2, 
+      targetScale: 0.2,
       angle: targetAngle,
       radius: targetRadius,
       rotationSpeed: parameters.targetSpeed,
@@ -885,22 +885,22 @@ const tick = () => {
     .map(a => a.mesh.children[0]); // check intersection with core mesh
 
   const intersects = raycaster.intersectObjects(potentialTargets);
-  
+
   if (intersects.length > 0) {
     const core = intersects[0].object;
     const anim = activeAnimations.find(a => a.mesh.children[0] === core);
-    
+
     if (hoveredStar !== anim) {
       if (hoveredStar) hoveredStar.mesh.scale.setScalar(1);
       hoveredStar = anim;
       hoveredStar.mesh.scale.setScalar(1.5);
-      
+
       // Update preview label
       const snippet = anim.note.body.slice(0, 40) + (anim.note.body.length > 40 ? '...' : '');
       previewLabel.textContent = `"${snippet}"`;
       previewLabel.style.display = 'block';
     }
-    
+
     // Position preview label near mouse
     const x = (mouse.x + 1) * window.innerWidth / 2;
     const y = (-mouse.y + 1) * window.innerHeight / 2;
@@ -918,7 +918,7 @@ const tick = () => {
 
   for (let i = activeAnimations.length - 1; i >= 0; i--) {
     const anim = activeAnimations[i];
-    
+
     // Internal "circle thing" animation logic
     if (anim.satellite) {
       const t = elapsed * 3;
@@ -941,7 +941,7 @@ const tick = () => {
       const r = 1.0;
       const xOffset = Math.sin(anim.stateCounter) * r;
       const yOffset = (Math.cos(anim.stateCounter) - 1) * r;
-      
+
       anim.mesh.position.copy(anim.circlePosCenter)
         .add(anim.camRight.clone().multiplyScalar(xOffset))
         .add(anim.camUp.clone().multiplyScalar(yOffset));
