@@ -171,6 +171,29 @@ renderCustomButtons();
 let activeAnimations = [];
 let activeEmotion = 'unknown';
 
+// --- Raycasting & Interaction ---
+const mouse = new THREE.Vector2(-1, -1);
+const raycaster = new THREE.Raycaster();
+let hoveredStar = null;
+
+const previewLabel = document.createElement('div');
+previewLabel.className = 'star-preview-label';
+document.body.appendChild(previewLabel);
+
+window.addEventListener('mousemove', (e) => {
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+});
+
+const getNotePos = (noteId) => {
+  let hash = 0;
+  for (let i = 0; i < noteId.length; i++) hash = noteId.charCodeAt(i) + ((hash << 5) - hash);
+  const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
+  const radius = 2 + (Math.abs(hash >> 8) % 60) / 10;
+  const height = (Math.abs(hash >> 16) % 100) / 10 - 5;
+  return { angle, radius, height };
+};
+
 let trackingLog = JSON.parse(localStorage.getItem('sentientTracking') || '[]');
 
 const trackEmotion = (emotionKey) => {
@@ -229,6 +252,20 @@ const setEmotion = (emotionKey) => {
     parameters.currentColorOutside.set(emotionMaps[emotionKey].outsideColor);
     parameters.currentSpeed = parameters.targetSpeed;
   }
+
+  // Clear current active permanent stars and spawn the ones for this emotion
+  for (let i = activeAnimations.length - 1; i >= 0; i--) {
+    if (activeAnimations[i].state === 'permanent') {
+      scene.remove(activeAnimations[i].mesh);
+      activeAnimations.splice(i, 1);
+    }
+  }
+
+  notesData.forEach(note => {
+    if (note.emotion === emotionKey) {
+      spawnShootingStar(getEmotionColor(note.emotion), true, note);
+    }
+  });
 
   trackEmotion(emotionKey);
 };
@@ -563,41 +600,91 @@ let currentFolderId = null;
 const saveNotes = () => localStorage.setItem('sentientNotes', JSON.stringify(notesData));
 const saveFolders = () => localStorage.setItem('sentientFolders', JSON.stringify(foldersData));
 const getEmotionColor = (key) => emotionMaps[key] ? emotionMaps[key].insideColor : '#ffffff';
-const spawnShootingStar = (color) => {
-  const geom = new THREE.SphereGeometry(0.1, 8, 8);
-  const mat = new THREE.MeshBasicMaterial({
+const spawnShootingStar = (color, fastForward = false, noteData = null) => {
+  const starGroup = new THREE.Group();
+  
+  const coreGeom = new THREE.SphereGeometry(0.12, 12, 12);
+  const coreMat = new THREE.MeshBasicMaterial({
     color: new THREE.Color(color),
     transparent: true,
     opacity: 1
   });
-  const mesh = new THREE.Mesh(geom, mat);
+  const core = new THREE.Mesh(coreGeom, coreMat);
+  starGroup.add(core);
 
-  // Start position: Foreground, slightly below center
-  mesh.position.set(0, 0, 8);
-  scene.add(mesh);
+  // The "Circle Thing in the Star" - Orbiting particle
+  const orbitGeom = new THREE.SphereGeometry(0.04, 6, 6);
+  const orbitMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const satellite = new THREE.Mesh(orbitGeom, orbitMat);
+  satellite.position.x = 0.25;
+  starGroup.add(satellite);
+  
+  // Get coordinate system relative to camera
+  const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+  const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
 
-  // Target: Random point in the galaxy's spiral
-  const radius = 2 + Math.random() * parameters.radius;
-  const angle = Math.random() * Math.PI * 2;
-  const targetX = Math.cos(angle) * radius;
-  const targetZ = Math.sin(angle) * radius;
-  const targetY = (Math.random() - 0.5) * 5;
+  const gPos = (points && !isFirstInteraction) ? points.position.clone() : new THREE.Vector3(0, 0, 0);
+  
+  let targetAngle, targetRadius, targetHeight;
+  if (noteData) {
+    const p = getNotePos(noteData.id);
+    targetAngle = p.angle;
+    targetRadius = p.radius;
+    targetHeight = p.height;
+  } else {
+    targetRadius = 2 + Math.random() * parameters.radius;
+    targetAngle = Math.random() * Math.PI * 2;
+    targetHeight = (Math.random() - 0.5) * 5;
+  }
 
-  activeAnimations.push({
-    mesh: mesh,
-    startX: 0, startY: 0, startZ: 8,
-    targetX: targetX, targetY: targetY, targetZ: targetZ,
-    progress: 0,
-    speed: 0.005, // base speed
-    state: 'init', // init, circleRight, pause, circleLeft, flyToGalaxy
-    stateCounter: 0,
-    isPermanent: true,
-    startScale: 0.01,
-    targetScale: 0.2 + Math.random() * 0.3,
-    angle: angle,
-    radius: radius,
-    rotationSpeed: parameters.targetSpeed
-  });
+  const targetX = gPos.x + Math.cos(targetAngle) * targetRadius;
+  const targetZ = gPos.z + Math.sin(targetAngle) * targetRadius;
+  const targetY = gPos.y + targetHeight;
+
+  if (fastForward) {
+    starGroup.position.set(targetX, targetY, targetZ);
+    scene.add(starGroup);
+    activeAnimations.push({
+      mesh: starGroup,
+      satellite: satellite,
+      state: 'permanent',
+      isPermanent: true,
+      angle: targetAngle,
+      radius: targetRadius,
+      targetY: targetY,
+      galaxyPos: gPos,
+      note: noteData,
+      emotion: noteData.emotion
+    });
+  } else {
+    const spawnPos = camera.position.clone().add(dir.clone().multiplyScalar(2));
+    const circlePosCenter = camera.position.clone().add(dir.clone().multiplyScalar(5));
+    starGroup.position.copy(spawnPos);
+    scene.add(starGroup);
+    activeAnimations.push({
+      mesh: starGroup,
+      satellite: satellite,
+      spawnPos: spawnPos,
+      circlePosCenter: circlePosCenter,
+      camRight: right,
+      camUp: up,
+      targetX: targetX, targetY: targetY, targetZ: targetZ,
+      progress: 0,
+      speed: 0.005,
+      state: 'init',
+      stateCounter: 0,
+      isPermanent: true,
+      startScale: 0.01,
+      targetScale: 0.2, 
+      angle: targetAngle,
+      radius: targetRadius,
+      rotationSpeed: parameters.targetSpeed,
+      galaxyPos: gPos,
+      note: noteData,
+      emotion: noteData ? noteData.emotion : activeEmotion
+    });
+  }
 };
 
 const btnWrite = document.getElementById('btn-write');
@@ -643,7 +730,7 @@ if (submitNoteBtn) {
       }, 350);
 
       // Spawn 3D shooting star near the end of CSS animation
-      spawnShootingStar(noteColor);
+      spawnShootingStar(noteColor, false, newNote);
     }, 1800);
   });
 }
@@ -791,80 +878,126 @@ const tick = () => {
       geometry.attributes.color.needsUpdate = true;
     }
   }
+  // --- Interaction Check ---
+  raycaster.setFromCamera(mouse, camera);
+  const potentialTargets = activeAnimations
+    .filter(a => a.state === 'permanent' && a.mesh.visible)
+    .map(a => a.mesh.children[0]); // check intersection with core mesh
+
+  const intersects = raycaster.intersectObjects(potentialTargets);
+  
+  if (intersects.length > 0) {
+    const core = intersects[0].object;
+    const anim = activeAnimations.find(a => a.mesh.children[0] === core);
+    
+    if (hoveredStar !== anim) {
+      if (hoveredStar) hoveredStar.mesh.scale.setScalar(1);
+      hoveredStar = anim;
+      hoveredStar.mesh.scale.setScalar(1.5);
+      
+      // Update preview label
+      const snippet = anim.note.body.slice(0, 40) + (anim.note.body.length > 40 ? '...' : '');
+      previewLabel.textContent = `"${snippet}"`;
+      previewLabel.style.display = 'block';
+    }
+    
+    // Position preview label near mouse
+    const x = (mouse.x + 1) * window.innerWidth / 2;
+    const y = (-mouse.y + 1) * window.innerHeight / 2;
+    previewLabel.style.left = (x + 20) + 'px';
+    previewLabel.style.top = (y - 20) + 'px';
+  } else {
+    if (hoveredStar) {
+      hoveredStar.mesh.scale.setScalar(1);
+      hoveredStar = null;
+      previewLabel.style.display = 'none';
+    }
+  }
+
+  const elapsed = clock.getElapsedTime();
+
   for (let i = activeAnimations.length - 1; i >= 0; i--) {
     const anim = activeAnimations[i];
+    
+    // Internal "circle thing" animation logic
+    if (anim.satellite) {
+      const t = elapsed * 3;
+      anim.satellite.position.x = Math.cos(t) * 0.25;
+      anim.satellite.position.y = Math.sin(t) * 0.25;
+    }
 
     if (anim.state === 'init') {
-      anim.progress += 0.02;
+      anim.progress += 0.05;
       const ease = 1 - Math.pow(1 - anim.progress, 3);
-      // Move to center-ish depth for circling
-      anim.mesh.position.set(
-        anim.startX + (0 - anim.startX) * ease,
-        anim.startY + (0 - anim.startY) * ease,
-        anim.startZ + (5 - anim.startZ) * ease
-      );
-      anim.mesh.scale.setScalar(anim.startScale + (0.3 - anim.startScale) * ease);
+      anim.mesh.position.lerpVectors(anim.spawnPos, anim.circlePosCenter, ease);
+      anim.mesh.scale.setScalar(anim.startScale + (anim.targetScale - anim.startScale) * ease);
       if (anim.progress >= 1) {
         anim.state = 'circleRight';
         anim.progress = 0;
         anim.stateCounter = 0;
       }
     } else if (anim.state === 'circleRight') {
-      anim.stateCounter += 0.05;
-      const radius = 1.5;
-      anim.mesh.position.x = Math.sin(anim.stateCounter) * radius;
-      anim.mesh.position.y = Math.cos(anim.stateCounter) * radius - radius; // start from bottom of circle
-      anim.mesh.position.z = 5;
+      anim.stateCounter += 0.08;
+      const r = 1.0;
+      const xOffset = Math.sin(anim.stateCounter) * r;
+      const yOffset = (Math.cos(anim.stateCounter) - 1) * r;
+      
+      anim.mesh.position.copy(anim.circlePosCenter)
+        .add(anim.camRight.clone().multiplyScalar(xOffset))
+        .add(anim.camUp.clone().multiplyScalar(yOffset));
+
       if (anim.stateCounter >= Math.PI * 2) {
         anim.state = 'pause';
         anim.stateCounter = 0;
       }
     } else if (anim.state === 'pause') {
       anim.stateCounter += 1;
-      if (anim.stateCounter >= 60) { // about 1 sec at 60fps
+      if (anim.stateCounter >= 40) {
         anim.state = 'circleLeft';
         anim.stateCounter = 0;
       }
     } else if (anim.state === 'circleLeft') {
-      anim.stateCounter += 0.05;
-      const radius = 1.5;
-      anim.mesh.position.x = -Math.sin(anim.stateCounter) * radius;
-      anim.mesh.position.y = Math.cos(anim.stateCounter) * radius - radius;
-      anim.mesh.position.z = 5;
+      anim.stateCounter += 0.08;
+      const r = 1.0;
+      const xOffset = -Math.sin(anim.stateCounter) * r;
+      const yOffset = (Math.cos(anim.stateCounter) - 1) * r;
+
+      anim.mesh.position.copy(anim.circlePosCenter)
+        .add(anim.camRight.clone().multiplyScalar(xOffset))
+        .add(anim.camUp.clone().multiplyScalar(yOffset));
+
       if (anim.stateCounter >= Math.PI * 2) {
         anim.state = 'flyToGalaxy';
         anim.progress = 0;
-        // set current pos as new start for final leg
         anim.startX = anim.mesh.position.x;
         anim.startY = anim.mesh.position.y;
         anim.startZ = anim.mesh.position.z;
       }
     } else if (anim.state === 'flyToGalaxy') {
-      anim.progress += anim.speed;
-      const ease = Math.pow(anim.progress, 2); // Accelerate into galaxy
+      anim.progress += anim.speed * 2;
+      const ease = Math.pow(anim.progress, 2);
 
       anim.mesh.position.x = anim.startX + (anim.targetX - anim.startX) * ease;
       anim.mesh.position.y = anim.startY + (anim.targetY - anim.startY) * ease;
       anim.mesh.position.z = anim.startZ + (anim.targetZ - anim.startZ) * ease;
 
-      const s = 0.3 + (anim.targetScale - 0.3) * ease;
+      const s = anim.targetScale + (anim.targetScale - anim.targetScale) * ease; // maintain scale
       anim.mesh.scale.setScalar(s);
 
       if (anim.progress >= 1) {
-        // Now it becomes permanent part of galaxy flow
         anim.state = 'permanent';
       }
     } else if (anim.state === 'permanent') {
-      if (anim.isPermanent) {
-        anim.angle -= parameters.currentSpeed * speedMultiplier; // match galaxy speed
-        anim.mesh.position.x = Math.cos(anim.angle) * anim.radius;
-        anim.mesh.position.z = Math.sin(anim.angle) * anim.radius;
-        // Keep mesh rotation oriented toward center
-        anim.mesh.lookAt(0, 0, 0);
-      } else {
+      // Visibility Filter: Hide stars not belonging to active emotion
+      anim.mesh.visible = (activeEmotion === anim.emotion);
+
+      if (anim.isPermanent && anim.mesh.visible) {
+        anim.angle -= parameters.currentSpeed * speedMultiplier;
+        anim.mesh.position.x = anim.galaxyPos.x + Math.cos(anim.angle) * anim.radius;
+        anim.mesh.position.z = anim.galaxyPos.z + Math.sin(anim.angle) * anim.radius;
+        anim.mesh.lookAt(anim.galaxyPos);
+      } else if (!anim.isPermanent) {
         scene.remove(anim.mesh);
-        anim.mesh.geometry.dispose();
-        anim.mesh.material.dispose();
         activeAnimations.splice(i, 1);
       }
     }
@@ -876,5 +1009,22 @@ const tick = () => {
   // Request next frame
   window.requestAnimationFrame(tick);
 };
+
+window.addEventListener('click', () => {
+  if (hoveredStar && hoveredStar.note) {
+    const modal = document.createElement('div');
+    modal.className = 'modal star-note-modal';
+    modal.innerHTML = `
+      <div class="glass-panel" style="max-width: 400px;">
+        <button class="close-modal">&times;</button>
+        <h2 class="note-title">${hoveredStar.note.title}</h2>
+        <div class="note-body" style="margin-top:16px;">${hoveredStar.note.body}</div>
+        <div class="note-meta" style="margin-top:16px;">${hoveredStar.note.timestamp}</div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.querySelector('.close-modal').onclick = () => modal.remove();
+  }
+});
 
 tick(); 
