@@ -479,7 +479,7 @@ const renderChart = () => {
     const wrapper = document.createElement('div');
     wrapper.className = 'bar-wrapper';
 
-    // Barm
+    // Bar
     const bar = document.createElement('div');
     bar.className = 'bar';
     const heightPercent = Math.max((counts[emotion] / maxCount) * 100, 5);
