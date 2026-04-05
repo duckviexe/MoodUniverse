@@ -509,19 +509,6 @@ header p {
   height: 120px;
   object-fit: cover;
   border-radius: 12px;
-  animation: hoverUpDown 3s infinite ease-in-out;
-}
-
-@keyframes hoverUpDown {
-
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-10px);
-  }
 }
 
 .cat-name {

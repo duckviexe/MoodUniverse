@@ -17,7 +17,7 @@
         <div id="cat-container">
           <div class="chat-bubble">hi!</div>
           <div class="cat-name">Dom</div>
-          <img src="./cat/1.jpg" alt="Pixel Space Cat Dom" class="pixel-cat" id="cat-sprite">
+          <img src="./cat/1-removebg-preview.png" alt="Pixel Space Cat Dom" class="pixel-cat" id="cat-sprite">
         </div>
 
         <button id="start-btn" class="btn active">Enter</button>
@@ -250,33 +250,50 @@
       </div>
     </div>
 
-    <!-- Cat Sprite Animation -->
     <script>
       (function() {
         const TOTAL_FRAMES = 20;
-        const FPS = 12;
+        const FPS = 15; // slightly faster for a smoother look
         const FRAME_MS = 1000 / FPS;
 
         // Preload all frames
         const frames = [];
         for (let i = 1; i <= TOTAL_FRAMES; i++) {
           const img = new Image();
-          img.src = './cat/' + i + '.jpg';
+          img.src = `./cat/${i}-removebg-preview.png`;
           frames.push(img);
         }
 
-        let currentFrame = 0;
+        let currentFrameIndex = 0; // 0 to 19
+        let direction = 1; // 1 for forward, -1 for backward
 
         function tick() {
           const sprite = document.getElementById('cat-sprite');
           if (sprite) {
-            currentFrame = (currentFrame + 1) % TOTAL_FRAMES;
-            sprite.src = frames[currentFrame].src;
+            // Update sprite
+            sprite.src = frames[currentFrameIndex].src;
+
+            // Ping-pong logic
+            if (direction === 1) {
+              if (currentFrameIndex >= TOTAL_FRAMES - 1) {
+                direction = -1;
+                currentFrameIndex--;
+              } else {
+                currentFrameIndex++;
+              }
+            } else {
+              if (currentFrameIndex <= 0) {
+                direction = 1;
+                currentFrameIndex++;
+              } else {
+                currentFrameIndex--;
+              }
+            }
           }
           setTimeout(tick, FRAME_MS);
         }
 
-        // Start after a short delay to let the DOM paint
+        // Start animation
         setTimeout(tick, FRAME_MS);
       })();
     </script>
