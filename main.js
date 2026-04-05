@@ -115,22 +115,22 @@ btnSaveTheme.addEventListener('click', () => {
 
   // Update associated galaxy if we haven't interacted yet
   if (isFirstInteraction) {
-      const bgG = bgGalaxies.find(g => g.key === emotion);
-      if (bgG) {
-          // Force color change on static background galaxy
-          const colors = bgG.geom.attributes.color.array;
-          const cin = new THREE.Color(inside);
-          const cout = new THREE.Color(outside);
-          for (let i = 0; i < parameters.count; i++) {
-              const i3 = i * 3;
-              const radius = Math.sqrt(Math.pow(bgG.geom.attributes.position.array[i3], 2) + Math.pow(bgG.geom.attributes.position.array[i3 + 2], 2));
-              const mix = cin.clone().lerp(cout, radius / parameters.radius);
-              colors[i3] = mix.r;
-              colors[i3 + 1] = mix.g;
-              colors[i3 + 2] = mix.b;
-          }
-          bgG.geom.attributes.color.needsUpdate = true;
+    const bgG = bgGalaxies.find(g => g.key === emotion);
+    if (bgG) {
+      // Force color change on static background galaxy
+      const colors = bgG.geom.attributes.color.array;
+      const cin = new THREE.Color(inside);
+      const cout = new THREE.Color(outside);
+      for (let i = 0; i < parameters.count; i++) {
+        const i3 = i * 3;
+        const radius = Math.sqrt(Math.pow(bgG.geom.attributes.position.array[i3], 2) + Math.pow(bgG.geom.attributes.position.array[i3 + 2], 2));
+        const mix = cin.clone().lerp(cout, radius / parameters.radius);
+        colors[i3] = mix.r;
+        colors[i3 + 1] = mix.g;
+        colors[i3 + 2] = mix.b;
       }
+      bgG.geom.attributes.color.needsUpdate = true;
+    }
   }
 
   // Visual Feedback
@@ -376,8 +376,8 @@ emotionContainer.addEventListener('dblclick', (e) => {
   }
 });
 
-// Initial state
-// (Galaxy spawns on first option click)
+// Initial stateee
+// (Galaxy spawns on first option cliclk)
 // --- Welcome Screen Logic ---
 const welcomeBtn = document.getElementById('start-btn');
 const welcomeScreen = document.getElementById('welcome-screen');
